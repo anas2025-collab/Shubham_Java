@@ -1,0 +1,379 @@
+<!--<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+     Bootstrap CSS 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .table-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center my-4">Employee Management</h1>
+
+         Form to add a new employee 
+        <div class="form-container">
+            <h2>Add Employee</h2>
+            <form id="employeeForm">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="department" class="form-label">Department</label>
+                    <input type="text" class="form-control" id="department" name="department" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Employee</button>
+            </form>
+        </div>
+
+         List all employees 
+        <div class="table-container">
+            <h2>Employee List</h2>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTableBody">
+                     Employee rows will be dynamically added here 
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+     Bootstrap JS (optional) 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+     JavaScript to interact with the REST API 
+    <script>
+        const API_BASE_URL = "http://localhost:8080/api/employees";
+
+        // Fetch all employees and display them in the table
+        async function fetchEmployees() {
+            const response = await fetch(API_BASE_URL);
+            const employees = await response.json();
+            const tableBody = document.getElementById("employeeTableBody");
+            tableBody.innerHTML = ""; // Clear existing rows
+
+            employees.forEach(employee => {
+                const row = `
+                    <tr>
+                        <td>${employee.id}</td>
+                        <td>${employee.name}</td>
+                        <td>${employee.department}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="editEmployee(${employee.id})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteEmployee(${employee.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // Add a new employee
+        document.getElementById("employeeForm").addEventListener("submit", async (event) => {
+            event.preventDefault(); // Prevent form submission
+
+            const name = document.getElementById("name").value;
+            const department = document.getElementById("department").value;
+
+            const response = await fetch(API_BASE_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ name, department }),
+            });
+
+            if (response.ok) {
+                alert("Employee added successfully!");
+                fetchEmployees(); // Refresh the employee list
+                document.getElementById("employeeForm").reset(); // Clear the form
+            } else {
+                alert("Failed to add employee.");
+            }
+        });
+
+        // Delete an employee
+        async function deleteEmployee(id) {
+            if (confirm("Are you sure you want to delete this employee?")) {
+                const response = await fetch(`${API_BASE_URL}/${id}`, {
+                    method: "DELETE",
+                });
+
+                if (response.ok) {
+                    alert("Employee deleted successfully!");
+                    fetchEmployees(); // Refresh the employee list
+                } else {
+                    alert("Failed to delete employee.");
+                }
+            }
+        }
+
+        // Edit an employee
+        async function editEmployee(id) {
+            // Fetch the employee details
+            const response = await fetch(`${API_BASE_URL}/${id}`);
+            const employee = await response.json();
+
+            // Populate the form with the employee details
+            document.getElementById("name").value = employee.name;
+            document.getElementById("department").value = employee.department;
+
+            // Change the form to update mode
+            const form = document.getElementById("employeeForm");
+            form.removeEventListener("submit", handleAddEmployee); // Remove the add event listener
+            form.addEventListener("submit", (event) => handleUpdateEmployee(event, id)); // Add the update event listener
+            form.querySelector("button").textContent = "Update Employee";
+        }
+
+        // Handle updating an employee
+        async function handleUpdateEmployee(event, id) {
+            event.preventDefault(); // Prevent form submission
+
+            const name = document.getElementById("name").value;
+            const department = document.getElementById("department").value;
+
+            const response = await fetch(`${API_BASE_URL}/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ name, department }),
+            });
+
+            if (response.ok) {
+                alert("Employee updated successfully!");
+                fetchEmployees(); // Refresh the employee list
+                document.getElementById("employeeForm").reset(); // Clear the form
+
+                // Reset the form to add mode
+                const form = document.getElementById("employeeForm");
+                form.removeEventListener("submit", handleUpdateEmployee); // Remove the update event listener
+                form.addEventListener("submit", handleAddEmployee); // Add the add event listener
+                form.querySelector("button").textContent = "Add Employee";
+            } else {
+                alert("Failed to update employee.");
+            }
+        }
+
+        // Handle adding an employee
+        async function handleAddEmployee(event) {
+            event.preventDefault(); // Prevent form submission
+
+            const name = document.getElementById("name").value;
+            const department = document.getElementById("department").value;
+
+            const response = await fetch(API_BASE_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ name, department }),
+            });
+
+            if (response.ok) {
+                alert("Employee added successfully!");
+                fetchEmployees(); // Refresh the employee list
+                document.getElementById("employeeForm").reset(); // Clear the form
+            } else {
+                alert("Failed to add employee.");
+            }
+        }
+
+        // Load employees when the page loads
+        window.onload = fetchEmployees;
+    </script>
+</body>
+</html>-->
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .table-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center my-4">Employee Management</h1>
+
+        <!-- Form to add a new employee -->
+        <div class="form-container">
+            <h2>Add Employee</h2>
+            <form id="employeeForm">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="department" class="form-label">Department</label>
+                    <input type="text" class="form-control" id="department" name="department" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Employee</button>
+            </form>
+        </div>
+
+        <!-- List all employees -->
+        <div class="table-container">
+            <h2>Employee List</h2>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTableBody">
+                    <!-- Employee rows will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Button to fetch students -->
+        <button id="fetchStudentsButton" class="btn btn-secondary my-3">Fetch Students</button>
+
+        <!-- List all students -->
+        <div class="table-container">
+            <h2>Student List</h2>
+            <table class="table table-striped" id="studentTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody">
+                    <!-- Student rows will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript to interact with the REST API -->
+    <script>
+        const API_BASE_URL = "http://localhost:8080/api/employees";
+        const STUDENT_API_BASE_URL = "http://localhost:8081/api/students"; // Update with the correct URL
+
+        // Fetch all employees and display them in the table
+        async function fetchEmployees() {
+            const response = await fetch(API_BASE_URL);
+            const employees = await response.json();
+            const tableBody = document.getElementById("employeeTableBody");
+            tableBody.innerHTML = ""; // Clear existing rows
+
+            employees.forEach(employee => {
+                const row = `
+                    <tr>
+                        <td>${employee.id}</td>
+                        <td>${employee.name}</td>
+                        <td>${employee.department}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="editEmployee(${employee.id})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteEmployee(${employee.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // Fetch all students and display them in the student table
+        async function fetchStudents() {
+            const response = await fetch(STUDENT_API_BASE_URL);
+            const students = await response.json();
+            const tableBody = document.getElementById("studentTableBody");
+            tableBody.innerHTML = ""; // Clear existing rows
+
+            students.forEach(student => {
+                const row = `
+                    <tr>
+                        <td>${student.id}</td>
+                        <td>${student.name}</td>
+                        <td>${student.grade}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // Add event listener to the fetch students button
+        document.getElementById("fetchStudentsButton").addEventListener("click", fetchStudents);
+
+        // Add a new employee
+        document.getElementById("employeeForm").addEventListener("submit", async (event) => {
+            event.preventDefault(); // Prevent form submission
+
+            const name = document.getElementById("name").value;
+            const department = document.getElementById("department").value;
+
+            const response = await fetch(API_BASE_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ name, department }),
+            });
+
+            if (response.ok) {
+                alert("Employee added successfully!");
+                fetchEmployees(); // Refresh the employee list
+                document.getElementById("employeeForm").reset(); // Clear the form
+            } else {
+                alert("Failed to add employee.");
+            }
+        });
+
+        // Load employees when the page loads
+        window.onload = fetchEmployees;
+    </script>
+</body>
+</html>
